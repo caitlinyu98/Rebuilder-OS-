@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rebuilder">
+<meta name="theme-color" content="#080810">
+<title>Rebuilder OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --surface: #0f0f1a;
+    --surface2: #161625;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e6f0;
+    --muted: #4a4865;
+    --dim: #2a2840;
+    --orange: #ff6b35;
+    --teal: #00d4aa;
+    --purple: #9b8cff;
+    --red: #ff4757;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+  }
+
+  /* grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 120px 0;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 52px 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    top: -40px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(155,140,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-eyebrow {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .header-title span { color: var(--orange); }
+  .header-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* STREAK BAR */
+  .streak-bar {
+    margin: 0 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 0;
+  }
+  .streak-item { text-align: center; }
+  .streak-num {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .streak-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .streak-divider {
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  /* NAV */
+  .nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    background: rgba(8,8,16,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 4px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+  .nav-btn.active { color: var(--orange); }
+  .nav-icon { font-size: 20px; line-height: 1; }
+
+  /* SECTIONS */
+  .section { display: none; padding: 0 16px; animation: fadeUp 0.25s ease; }
+  .section.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* CALENDAR */
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+  .cal-day-header {
+    font-family: var(--mono);
+    font-size: 8px;
+    text-align: center;
+    color: var(--muted);
+    padding: 4px 0;
+    letter-spacing: 0.06em;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cal-day.today {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 1px rgba(255,107,53,0.2);
+  }
+  .cal-day.future {
+    opacity: 0.3;
+    cursor: default;
+  }
+  .cal-day.empty {
+    background: transparent;
+    border-color: transparent;
+    cursor: default;
+  }
+  .cal-num {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1;
+  }
+  .cal-dots {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+  .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.2s;
+  }
+  .dot.workout { background: var(--teal); }
+  .dot.nc { background: var(--purple); }
+
+  /* TODAY PANEL */
+  .today-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .today-date {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check-left { flex: 1; }
+  .check-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .check-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .toggle {
+    width: 52px;
+    height: 30px;
+    border-radius: 15px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.25s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .toggle.on::after { transform: translateX(22px); }
+
+  /* CAREER SECTION */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-accent {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 14px 0 0 14px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    padding-left: 10px;
+  }
+  .card-meta {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    padding-left: 10px;
+    margin-bottom: 8px;
+  }
+  .card-next {
+    font-size: 11px;
+    color: #60a5fa;
+    background: rgba(96,165,250,0.08);
+    border: 1px solid rgba(96,165,250,0.15);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-left: 10px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+  .badge-wrap { padding-left: 10px; margin-bottom: 8px; }
+
+  select.status-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 4px 8px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+  }
+
+  /* FOCUS INPUT */
+  .focus-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,107,53,0.25);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .focus-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .focus-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 12px;
+    outline: none;
+    resize: none;
+    min-height: 60px;
+  }
+  .focus-input::placeholder { color: var(--muted); font-weight: 400; }
+
+  /* SUBSTACK */
+  .sub-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .sub-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  /* LANES */
+  .lane-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .lane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .lane-name {
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lane-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .pro { font-family: var(--mono); font-size: 10px; color: var(--green); padding: 2px 0; }
+  .con { font-family: var(--mono); font-size: 10px; color: var(--red); padding: 2px 0; }
+  .verdict {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+  }
+
+  .set-lane-btn {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    background: transparent;
+  }
+
+  /* PROGRESS RING */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .ring-wrap { text-align: center; }
+  .ring-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 200;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* UTILS */
+  .mb-4 { margin-bottom: 16px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mt-2 { margin-top: 8px; }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .month-nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .month-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-eyebrow">OPT Window · Boston</div>
+    <div class="header-title">RE<span>BUILD</span>ER OS</div>
+    <div class="header-sub">career · body · mind · streak</div>
+  </div>
+
+  <!-- STREAK BAR -->
+  <div class="streak-bar">
+    <div class="streak-item">
+      <div class="streak-num" id="workout-streak" style="color: var(--teal)">0</div>
+      <div class="streak-label">Workout Streak</div>
+    </div>
+    <div class="streak-divider"></div>
+    <div class="streak-item">
+      <div class="streak-num" id="nc-streak" style="color: var(--purple)">0</div>
+      <div class="streak-label">No Contact Days</div>
+    </div>
+  </div>
+
+  <!-- TODAY -->
+  <div id="section-today" class="section active" style="padding-top:4px;">
+    <div class="section-title">Today</div>
+
+    <div class="today-panel">
+      <div class="today-date" id="today-date-label"></div>
+
+      <div class="check-row">
+        <div class="check-left">
+          <div class="check-title">💪 Workout done</div>
+          <div class="check-sub">Move your body. Non-negotiable.</div>
+        </div>
+        <button class="toggle" id="toggle-workout" onclick="toggleToday('workout')"></button>
+      </div>
+
+      <div class="check-row">
+        <div class="check-left">
+          <div class="check-title">🔒 No contact held</div>
+          <div class="check-sub">You chose yourself today.</div>
+        </div>
+        <button class="toggle" id="toggle-nc" onclick="toggleToday('nc')"></button>
+      </div>
+    </div>
+
+    <div class="section-title">This Week's Priority</div>
+    <div class="focus-card">
+      <div class="focus-label">⚡ One thing that must ship</div>
+      <textarea class="focus-input" id="weekly-focus" placeholder="What must you ship or complete this week?" oninput="saveWeeklyFocus()"></textarea>
+    </div>
+
+    <div class="section-title">Ship Next</div>
+    <div id="ship-next-list"></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div id="section-calendar" class="section" style="padding-top:4px;">
+    <div class="section-title">Habit Calendar</div>
+
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">←</button>
+      <div class="month-name" id="month-label"></div>
+      <button onclick="changeMonth(1)">→</button>
+    </div>
+
+    <div style="display:flex;gap:16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="dot workout"></div>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">Workout</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="dot nc"></div>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--muted);">No Contact</span>
+      </div>
+    </div>
+
+    <div class="calendar-grid" id="cal-headers">
+      <div class="cal-day-header">Su</div>
+      <div class="cal-day-header">Mo</div>
+      <div class="cal-day-header">Tu</div>
+      <div class="cal-day-header">We</div>
+      <div class="cal-day-header">Th</div>
+      <div class="cal-day-header">Fr</div>
+      <div class="cal-day-header">Sa</div>
+    </div>
+
+    <div class="calendar-grid" id="cal-grid"></div>
+
+    <!-- Monthly stats -->
+    <div class="card mt-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="text-align:center;">
+        <div id="month-workout-count" style="font-size:28px;font-weight:800;color:var(--teal);letter-spacing:-0.03em;">0</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;">Workouts This Month</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="month-nc-count" style="font-size:28px;font-weight:800;color:var(--purple);letter-spacing:-0.03em;">0</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;">NC Days This Month</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAREER -->
+  <div id="section-career" class="section" style="padding-top:4px;">
+    <div class="section-title">Active Lane</div>
+    <div id="active-lane-display" style="margin-bottom:16px;"></div>
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;" id="lane-buttons"></div>
+
+    <div class="section-title">Portfolio</div>
+    <div id="portfolio-list"></div>
+
+    <div class="section-title" style="margin-top:16px;">Substack Pipeline</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:12px;line-height:1.6;">Target: 2 posts/month · product lens · ship > perfect</div>
+    <div id="substack-list"></div>
+  </div>
+
+  <!-- PROJECTS -->
+  <div id="section-projects" class="section" style="padding-top:4px;">
+    <div class="section-title">External Traction</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:16px;line-height:1.6;background:rgba(255,107,53,0.07);padding:10px 12px;border-radius:8px;border-left:2px solid var(--orange);">
+      Every event must produce an artifact. Attending ≠ building.
+    </div>
+    <div id="projects-list"></div>
+
+    <div class="section-title" style="margin-top:16px;">Lanes Explorer</div>
+    <div id="lanes-list"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="switchTab('today', this)">
+    <span class="nav-icon">◈</span>Today
+  </button>
+  <button class="nav-btn" onclick="switchTab('calendar', this)">
+    <span class="nav-icon">◻</span>Calendar
+  </button>
+  <button class="nav-btn" onclick="switchTab('career', this)">
+    <span class="nav-icon">◆</span>Career
+  </button>
+  <button class="nav-btn" onclick="switchTab('projects', this)">
+    <span class="nav-icon">◇</span>Projects
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────
+const STORAGE_KEY = 'rebuilder-os-v2';
+
+const DEFAULT = {
+  habits: {}, // { "2026-04-27": { workout: true, nc: true } }
+  weeklyFocus: '',
+  activeLane: null,
+  portfolio: [
+    { id: 'sba', title: 'SBA Loan Default Prediction', type: 'ML / Data Product', status: 'done', lane: 'fraud-risk', nextStep: 'Write Substack breakdown — product lens' },
+    { id: 'ai-scorer', title: 'AI Adoption Readiness Scorer', type: 'Streamlit App', status: 'in-progress', lane: 'cross', nextStep: 'Ship MVP to public URL' },
+    { id: 'smb-prd', title: 'SMB Risk Monitoring Tool PRD', type: 'PRD', status: 'planned', lane: 'fraud-risk', nextStep: 'Draft v1 — problem, users, metrics, roadmap' },
+    { id: 'health-tbd', title: 'Healthcare AI Project (TBD)', type: 'TBD', status: 'exploring', lane: 'healthcare', nextStep: 'Identify one concrete problem to build around' },
+  ],
+  substack: [
+    { id: 's1', title: 'What My SBA Model Taught Me About Product Thinking in Credit Risk', status: 'planned', lane: 'fraud-risk' },
+    { id: 's2', title: 'Why Fraud Prevention Is the Best PM Training Ground', status: 'planned', lane: 'fraud-risk' },
+    { id: 's3', title: 'Healthcare AI vs Fintech AI: What I\'m Learning as an Outsider', status: 'idea', lane: 'healthcare' },
+    { id: 's4', title: 'Building in Public: My AI Adoption Scorer', status: 'idea', lane: 'cross' },
+  ],
+  projects: [
+    { id: 'p1', title: 'BU/MIT Med AI Hackathon', type: 'Hackathon', status: 'done', lane: 'healthcare', outcome: 'Attended, built something live' },
+    { id: 'p2', title: 'vLLM x Red Hat Meetup', type: 'Technical Event', status: 'done', lane: 'cross', outcome: 'Deployed Llama 3.1 on OpenShift, met Jan + Stefanie' },
+    { id: 'p3', title: 'Contribute to fraud/risk open source project', type: 'Open Source', status: 'planned', lane: 'fraud-risk', outcome: '' },
+    { id: 'p4', title: 'Reach out to Firas Raouf (Companyon Ventures)', type: 'Networking', status: 'planned', lane: 'fraud-risk', outcome: '' },
+    { id: 'p5', title: 'Interview a healthcare PM for Substack', type: 'Research', status: 'planned', lane: 'healthcare', outcome: '' },
+  ],
+  lanes: {
+    'fraud-risk': { label: 'Fraud / Risk', color: '#ff6b35', pros: ['GCash anchors narrative', 'SBA model = live artifact', 'Clear hiring market'], cons: ['Need SQL depth fast', 'Crowded at big cos'], verdict: 'Strongest current position — double down' },
+    'cybersecurity': { label: 'Cybersecurity', color: '#00d4aa', pros: ['Adjacent to fraud', 'Less saturated PM market', 'Enterprise SaaS demand'], cons: ['No artifact yet', "Doesn't connect to GCash"], verdict: 'Possible bridge — not standalone yet' },
+    'healthcare': { label: 'Healthcare AI', color: '#9b8cff', pros: ['Hackathon presence', 'AI adoption is urgent', 'Real hiring growth'], cons: ['No domain artifact', 'No GCash connection', 'Not in health MBA track'], verdict: 'Test with ONE project before leaning in' },
+    'fintech': { label: 'Fintech / SEA', color: '#fbbf24', pros: ['GCash = operator experience', 'SEA long-term play', '$1T market + fraud wave'], cons: ['Too broad — need a sub-lane'], verdict: 'Use as wrapper; fraud/risk is the niche' },
+  }
+};
+
+let state = {};
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      // Merge to keep new defaults
+      state = {
+        ...DEFAULT,
+        ...saved,
+        portfolio: saved.portfolio || DEFAULT.portfolio,
+        substack: saved.substack || DEFAULT.substack,
+        projects: saved.projects || DEFAULT.projects,
+        lanes: DEFAULT.lanes,
+      };
+    } else {
+      state = JSON.parse(JSON.stringify(DEFAULT));
+    }
+  } catch(e) {
+    state = JSON.parse(JSON.stringify(DEFAULT));
+  }
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ─── DATES ─────────────────────────────────────────────────────────
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+// ─── STREAKS ────────────────────────────────────────────────────────
+function calcStreak(type) {
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (state.habits[key] && state.habits[key][type]) {
+      streak++;
+    } else {
+      if (i === 0) continue; // today not yet checked — don't break streak
+      break;
+    }
+  }
+  return streak;
+}
+
+function updateStreaks() {
+  document.getElementById('workout-streak').textContent = calcStreak('workout');
+  document.getElementById('nc-streak').textContent = calcStreak('nc');
+}
+
+// ─── TODAY ──────────────────────────────────────────────────────────
+function renderToday() {
+  const key = todayKey();
+  const h = state.habits[key] || {};
+
+  // Date label
+  const now = new Date();
+  document.getElementById('today-date-label').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Toggles
+  const tw = document.getElementById('toggle-workout');
+  const tn = document.getElementById('toggle-nc');
+  tw.classList.toggle('on', !!h.workout);
+  tn.classList.toggle('on', !!h.nc);
+  tw.style.background = h.workout ? 'var(--teal)' : 'var(--dim)';
+  tn.style.background = h.nc ? 'var(--purple)' : 'var(--dim)';
+
+  // Weekly focus
+  document.getElementById('weekly-focus').value = state.weeklyFocus || '';
+
+  // Ship next
+  const all = [...state.portfolio, ...state.substack, ...state.projects];
+  const pending = all.filter(i => !['done','published'].includes(i.status)).slice(0, 4);
+  const laneColors = { 'fraud-risk': '#ff6b35', 'healthcare': '#9b8cff', 'cross': '#94a3b8', 'cybersecurity': '#00d4aa', 'fintech': '#fbbf24' };
+  const laneLabels = { 'fraud-risk': 'Fraud/Risk', 'healthcare': 'Healthcare', 'cross': 'Cross-cutting', 'cybersecurity': 'Cybersec', 'fintech': 'Fintech' };
+
+  document.getElementById('ship-next-list').innerHTML = pending.map(item => {
+    const c = laneColors[item.lane] || '#64748b';
+    const l = laneLabels[item.lane] || item.lane;
+    return `
+      <div class="card" style="margin-bottom:8px;">
+        <div class="card-accent" style="background:${c}"></div>
+        <div class="card-title">${item.title}</div>
+        <div class="card-meta">${item.type || ''} ${l ? `· ${l}` : ''}</div>
+        ${(item.nextStep||item.outcome) ? `<div class="card-next">→ ${item.nextStep||item.outcome}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function toggleToday(type) {
+  const key = todayKey();
+  if (!state.habits[key]) state.habits[key] = {};
+  state.habits[key][type] = !state.habits[key][type];
+  save();
+  renderToday();
+  updateStreaks();
+  renderCalendar();
+
+  const msg = type === 'workout'
+    ? (state.habits[key].workout ? '💪 Workout logged!' : 'Workout unmarked')
+    : (state.habits[key].nc ? '🔒 No contact held. You\'re doing it.' : 'NC day unmarked');
+  showToast(msg);
+}
+
+function saveWeeklyFocus() {
+  state.weeklyFocus = document.getElementById('weekly-focus').value;
+  save();
+}
+
+// ─── CALENDAR ───────────────────────────────────────────────────────
+let calYear, calMonth;
+
+function initCal() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+}
+
+function changeMonth(delta) {
+  calMonth += delta;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const now = new Date();
+  const todayStr = todayKey();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  document.getElementById('month-label').textContent = `${monthNames[calMonth]} ${calYear}`;
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  let html = '';
+  // Empty cells
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"></div>`;
+
+  let workoutCount = 0, ncCount = 0;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = dateKey(calYear, calMonth, d);
+    const h = state.habits[key] || {};
+    const isToday = key === todayStr;
+    const isFuture = key > todayStr;
+    if (h.workout) workoutCount++;
+    if (h.nc) ncCount++;
+
+    html += `<div class="cal-day${isToday?' today':''}${isFuture?' future':''}" onclick="${isFuture?'':'openDayModal(\''+key+'\','+d+')'}" >
+      <span class="cal-num">${d}</span>
+      <div class="cal-dots">
+        <div class="dot${h.workout?' workout':''}"></div>
+        <div class="dot${h.nc?' nc':''}"></div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('cal-grid').innerHTML = html;
+  document.getElementById('month-workout-count').textContent = workoutCount;
+  document.getElementById('month-nc-count').textContent = ncCount;
+}
+
+function openDayModal(key, day) {
+  if (!state.habits[key]) state.habits[key] = {};
+  const h = state.habits[key];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const label = `${monthNames[calMonth]} ${day}`;
+
+  // Simple inline toggle via toast for past days
+  const workoutStatus = h.workout ? '✓' : '✗';
+  const ncStatus = h.nc ? '✓' : '✗';
+
+  // Create a quick modal
+  const existing = document.getElementById('day-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'day-modal';
+  modal.style.cssText = `position:fixed;inset:0;z-index:300;background:rgba(8,8,16,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;`;
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;width:100%;max-width:320px;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.1em;margin-bottom:16px;">${label}</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:20px;">Edit this day</div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:13px;font-weight:600;">💪 Workout</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Currently: ${h.workout ? 'done ✓' : 'not logged'}</div>
+        </div>
+        <button onclick="toggleDay('${key}','workout')" style="background:${h.workout?'var(--teal)':'var(--dim)'};color:#000;border:none;border-radius:20px;padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;">${h.workout?'UNDO':'LOG'}</button>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;margin-bottom:20px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;">🔒 No Contact</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);">Currently: ${h.nc ? 'held ✓' : 'not logged'}</div>
+        </div>
+        <button onclick="toggleDay('${key}','nc')" style="background:${h.nc?'var(--purple)':'var(--dim)'};color:#fff;border:none;border-radius:20px;padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;">${h.nc?'UNDO':'LOG'}</button>
+      </div>
+
+      <button onclick="document.getElementById('day-modal').remove()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:12px;font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:0.08em;">CLOSE</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function toggleDay(key, type) {
+  if (!state.habits[key]) state.habits[key] = {};
+  state.habits[key][type] = !state.habits[key][type];
+  save();
+  updateStreaks();
+  renderCalendar();
+  // Refresh modal
+  const d = parseInt(key.split('-')[2]);
+  document.getElementById('day-modal')?.remove();
+  openDayModal(key, d);
+  if (key === todayKey()) renderToday();
+}
+
+// ─── CAREER ─────────────────────────────────────────────────────────
+const laneColors = { 'fraud-risk': '#ff6b35', 'healthcare': '#9b8cff', 'cross': '#94a3b8', 'cybersecurity': '#00d4aa', 'fintech': '#fbbf24' };
+const laneLabels = { 'fraud-risk': 'Fraud/Risk', 'healthcare': 'Healthcare', 'cross': 'Cross-cutting', 'cybersecurity': 'Cybersec', 'fintech': 'Fintech/SEA' };
+const statusColors = { done: '#4ade80', 'in-progress': '#fbbf24', planned: '#60a5fa', exploring: '#c084fc', idea: '#64748b', published: '#4ade80' };
+const statusLabels = { done: 'Done', 'in-progress': 'In Progress', planned: 'Planned', exploring: 'Exploring', idea: 'Idea', published: 'Published' };
+
+function renderCareer() {
+  // Active lane
+  const al = state.activeLane;
+  const alCfg = al ? state.lanes[al] : null;
+  document.getElementById('active-lane-display').innerHTML = alCfg
+    ? `<div style="background:${alCfg.color}12;border:1px solid ${alCfg.color}30;border-radius:12px;padding:12px 14px;">
+        <div style="font-size:13px;font-weight:700;color:${alCfg.color};margin-bottom:4px;">${alCfg.label}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">→ ${alCfg.verdict}</div>
+       </div>`
+    : `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 0;">No active lane set — pick one below in Projects tab</div>`;
+
+  // Lane buttons
+  document.getElementById('lane-buttons').innerHTML = Object.entries(state.lanes).map(([k, v]) =>
+    `<button class="set-lane-btn" onclick="setActiveLane('${k}')" style="color:${v.color};border-color:${v.color}${state.activeLane===k?'':'40'};background:${state.activeLane===k?v.color+'18':'transparent'}">
+      ${v.label}${state.activeLane===k?' ✓':''}
+    </button>`
+  ).join('');
+
+  // Portfolio
+  document.getElementById('portfolio-list').innerHTML = state.portfolio.map(item => {
+    const c = laneColors[item.lane] || '#64748b';
+    const sc = statusColors[item.status] || '#64748b';
+    return `<div class="card mb-2">
+      <div class="card-accent" style="background:${c}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-left:10px;margin-bottom:6px;">
+        <div class="card-title" style="padding-left:0;margin-bottom:0;">${item.title}</div>
+        <select class="status-select" onchange="updateStatus('portfolio','${item.id}',this.value)">
+          ${Object.entries(statusLabels).map(([k,v]) => `<option value="${k}"${item.status===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="badge-wrap">
+        <span class="badge" style="color:${c};background:${c}18;border:1px solid ${c}30;">${laneLabels[item.lane]||item.lane}</span>
+        <span class="badge" style="color:${sc};background:${sc}18;border:1px solid ${sc}30;">${statusLabels[item.status]}</span>
+        ${item.type?`<span class="badge" style="color:var(--muted);background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.2);">${item.type}</span>`:''}
+      </div>
+      ${item.nextStep?`<div class="card-next">→ ${item.nextStep}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Substack
+  document.getElementById('substack-list').innerHTML = state.substack.map(item => {
+    const c = laneColors[item.lane] || '#64748b';
+    const sc = statusColors[item.status] || '#64748b';
+    return `<div class="sub-card">
+      <div style="flex:1;">
+        <div class="sub-title">${item.title}</div>
+        <div style="margin-top:6px;">
+          <span class="badge" style="color:${c};background:${c}18;border:1px solid ${c}30;">${laneLabels[item.lane]||item.lane}</span>
+        </div>
+      </div>
+      <select class="status-select" onchange="updateStatus('substack','${item.id}',this.value)">
+        <option value="idea"${item.status==='idea'?' selected':''}>Idea</option>
+        <option value="planned"${item.status==='planned'?' selected':''}>Planned</option>
+        <option value="in-progress"${item.status==='in-progress'?' selected':''}>Drafting</option>
+        <option value="done"${item.status==='done'?' selected':''}>Done</option>
+        <option value="published"${item.status==='published'?' selected':''}>Published</option>
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function setActiveLane(lane) {
+  state.activeLane = state.activeLane === lane ? null : lane;
+  save();
+  renderCareer();
+  renderProjects();
+}
+
+function updateStatus(section, id, val) {
+  const idx = state[section].findIndex(i => i.id === id);
+  if (idx >= 0) state[section][idx].status = val;
+  save();
+  renderToday();
+  if (section === 'portfolio' || section === 'substack') renderCareer();
+  else renderProjects();
+}
+
+// ─── PROJECTS ───────────────────────────────────────────────────────
+function renderProjects() {
+  // Projects list
+  document.getElementById('projects-list').innerHTML = state.projects.map(item => {
+    const c = laneColors[item.lane] || '#64748b';
+    const sc = statusColors[item.status] || '#64748b';
+    return `<div class="card mb-2">
+      <div class="card-accent" style="background:${c}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-left:10px;margin-bottom:6px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);flex:1;margin-right:8px;">${item.title}</div>
+        <select class="status-select" onchange="updateStatus('projects','${item.id}',this.value)">
+          ${Object.entries(statusLabels).map(([k,v]) => `<option value="${k}"${item.status===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div style="padding-left:10px;">
+        <span class="badge" style="color:${c};background:${c}18;border:1px solid ${c}30;">${laneLabels[item.lane]||item.lane}</span>
+        <span class="badge" style="color:${sc};background:${sc}18;border:1px solid ${sc}30;">${item.type||''}</span>
+      </div>
+      ${item.outcome?`<div style="font-family:var(--mono);font-size:10px;color:${item.status==='done'?'var(--green)':'#60a5fa'};padding:6px 10px 0 10px;">${item.status==='done'?'✓ ':' → '}${item.outcome}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Lanes
+  document.getElementById('lanes-list').innerHTML = Object.entries(state.lanes).map(([k, v]) => {
+    const isActive = state.activeLane === k;
+    return `<div class="lane-card" style="border-color:${isActive?v.color+'40':'var(--border)'}">
+      <div class="lane-header">
+        <div class="lane-name">
+          <div class="lane-dot" style="background:${v.color}"></div>
+          ${v.label}
+        </div>
+        <button class="set-lane-btn" onclick="setActiveLane('${k}')" style="color:${v.color};border-color:${v.color}${isActive?'':'60'};background:${isActive?v.color+'18':'transparent'}">
+          ${isActive ? 'Active ✓' : 'Set Active'}
+        </button>
+      </div>
+      ${v.pros.map(p => `<div class="pro">✓ ${p}</div>`).join('')}
+      ${v.cons.map(c => `<div class="con">✗ ${c}</div>`).join('')}
+      <div class="verdict" style="color:${v.color};background:${v.color}10;">→ ${v.verdict}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── TOAST ──────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── NAV ────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────
+load();
+initCal();
+renderToday();
+renderCalendar();
+renderCareer();
+renderProjects();
+updateStreaks();
+</script>
+</body>
+</html>
